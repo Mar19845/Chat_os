@@ -31,16 +31,46 @@ int main(int argc, char **argv)
     char sendline[MAXLINE];
     char recvline[MAXLINE];
 
+    if (argc != 2){ //USAGE CHECK
+        handle_error("usage: %s <server addres>", argv[0]);
+    }
+
+    if((sockfd = socket(AF_INET, SOCK_STREAM, 0))<0){
+        handle_error("Error while creating the socket! :(");
+    }
+
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(SERVER_PORT); //htons=host to network, short
 
+    if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) <= 0){
+        handle_error("inet_pton error for %s", argv[1]);
+    }
+
+    if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) < 0)
+    {
+        handle_error("CONNECTION FAILED! :(");
+    }
+    
     //SUCCESS CONNECTION, MESSAGE PREPARE
     sprintf(sendline, "GET / HTTP/1.1\r\n\r\n");
     sendbytes = strlen(sendline);
 
+    if(write(sockfd, sendline, sendbytes) != sendbytes){
+        handle_error("write error");
+    }
+
     memset(recvline, 0, MAXLINE);
     exit(0);
+
+    while ((n = read(sockfd, recvline, MAXLINE-1)) > 0)
+    {
+        printf("%s", recvline);
+    }
+    if(n<0){
+        handle_error("read error");
+    }
+    
     
 }
 
