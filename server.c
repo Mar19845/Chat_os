@@ -22,13 +22,16 @@
 #define BUFFER_SIZE 2048  
 //ip
 #define IP "127.0.0.1"
-
+// Status
+#define STATUS_ACTIVE 0
+#define STATUS_BUSY 2
+#define STATUS_INACTIVE 1
 //define a struct for the client info
 typedef struct {
     struct sockaddr_in address;
     int sock_fd;
     char name[32];
-    char stattus[32];
+    int status;
     time_t connect_time;
 }Client;
 
