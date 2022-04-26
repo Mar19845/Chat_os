@@ -1,6 +1,7 @@
 // standard
 #include <unistd.h>
 #include<stdio.h>
+#include <time.h>
 
 //sockets lib
 #include <netdb.h> 
@@ -14,19 +15,33 @@
 #include <stdio.h> 
 #include <string.h>
 
-
 // global variables
 // number of clients the server can handle 
 #define MAX_CLIENTS 100
 //buffer max size
-#define BUFFER_SIZE 100  
+#define BUFFER_SIZE 2048  
 //ip
-#define IP "192.168.0.21"
+#define IP "127.0.0.1"
+
+//define a struct for the client info
+typedef struct {
+    struct sockaddr_in address;
+    int sock_fd;
+    char name[32];
+    char stattus[32];
+    time_t connect_time;
+}Client;
+
+//create pointer array for the clients
+Client *CLIENT_ar[MAX_CLIENTS];
+
 int main(int argc,char* argv[]){
     if(argc==1)
         printf("\nNo Extra Command Line Argument Passed Other Than Program Name");
     if(argc>=2){
-        printf("\nPort_Serv: %s",argv[1]);
+        //format port 
+        int PORT = atoi(argv[1]);
+
         // define int for comunication
         int listen_fd,connfd; // listen to socket and socket connection descriptors
         // import socket struct for server and client
@@ -52,23 +67,30 @@ int main(int argc,char* argv[]){
         // configure server socket
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = inet_addr(IP);
-        serv_addr.sin_port = htons(argv[1]);
+        //serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        serv_addr.sin_port = htons(PORT);
 
         //bind the socket
-        if ((bind(listen_fd, (struct serv_addr *)&serv_addr, sizeof(serv_addr))) != 0){ 
+        if ((bind(listen_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) != 0){ 
             fprintf(stderr, "[SERVER-error]: socket bind failed. %d: %s \n", errno, strerror( errno ));
             return -1;
+        }
+        else{
+            printf("[SERVER]: Socket successfully binded \n");
         }
         //listen
         if ((listen(listen_fd, MAX_CLIENTS)) != 0){ 
             fprintf(stderr, "[SERVER-error]: socket listen failed. %d: %s \n", errno, strerror( errno ));
             return -1;
         }
+        else{
+            printf("[SERVER]: Listening on SERV_PORT %d \n\n", ntohs(serv_addr.sin_port) ); 
+        }
         // get len of socket for client
         int len_client = sizeof(client_addr);
         //infinite loop for the accept
         while(1){
-            connfd = accept(listen_fd,(struct serv_addr *)&client_addr, &len_client );
+            connfd = accept(listen_fd,(struct sockaddr *)&client_addr, &len_client );
             if (connfd < 0) {
                 fprintf(stderr, "[SERVER-error]: connection not accepted. %d: %s \n", errno, strerror( errno ));
                 return -1;
