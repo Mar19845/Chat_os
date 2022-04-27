@@ -19,7 +19,7 @@
 // number of clients the server can handle 
 #define MAX_CLIENTS 100
 //buffer max size
-#define BUFFER_SIZE 2048  
+#define BUFFER_SIZE 1024  
 //ip
 #define IP "127.0.0.1"
 // Status
