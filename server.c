@@ -19,7 +19,7 @@
 // number of clients the server can handle 
 #define MAX_CLIENTS 100
 //buffer max size
-#define BUFFER_SIZE 1024  
+#define BUFFER_SIZE 2048  
 //ip
 #define IP "127.0.0.1"
 // Status
@@ -99,21 +99,16 @@ int main(int argc,char* argv[]){
                 return -1;
             }
             else{
+                char name[32];
                 while(1){
-                    //read client message
-                    len_rx = read(connfd, buff_rx, sizeof(buff_rx));
-                    if(len_rx == -1){
-                        fprintf(stderr, "[SERVER-error]: connfd cannot be read. %d: %s \n", errno, strerror( errno ));
+                    //recv(connfd, name, 32, 0);
+                    if(recv(connfd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
+		                printf("Didn't enter the name.\n");
+                    }else{
+                        printf("%s",name);
                     }
-                    else if(len_rx == 0) /* if length is 0 client socket closed, then exit */{
-                        printf("[SERVER]: client socket closed \n\n");
-                        close(connfd);
-                        break; 
-                    }
-                    else{
-                        write(connfd, buff_tx, strlen(buff_tx));
-                        printf("[SERVER]: %s \n", buff_rx);
-                    }
+                    close(connfd);
+                    break;
                 }
 
             }

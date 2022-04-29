@@ -34,16 +34,18 @@ int main(int argc, char **argv)
     if(argc>=4){
 
         int PORT = atoi(argv[3]);
-        char *IP = argv[2];
-        char *name = argv[1];
+        char *IP = (argv[2]);
+        char *name = (argv[1]);
         int sockfd, n;
         int sendbytes;
         struct sockaddr_in servaddr;
-        char sendline[BUFFER_SIZE];
-        char recvline[BUFFER_SIZE];
+
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
+        if (sockfd == -1){ 
+            fprintf(stderr, "[SERVER-error]: socket creation failed. %d: %s \n", errno, strerror( errno ));
+            return -1;
+        }
         bzero(&servaddr, sizeof(servaddr));
         servaddr.sin_family = AF_INET;
         servaddr.sin_port = htons(PORT); //htons=host to network, short
@@ -52,27 +54,11 @@ int main(int argc, char **argv)
         if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) < 0)
         {
             printf("CONNECTION FAILED! :(");
+            return -1;
         }
-        
-        //SUCCESS CONNECTION, MESSAGE PREPARE
-        sprintf(sendline, "GET / HTTP/1.1\r\n\r\n");
-        sendbytes = strlen(sendline);
-
-        if(write(sockfd, sendline, sendbytes) != sendbytes){
-            printf("write error");
-        }
-
-        memset(recvline, 0, BUFFER_SIZE);
-        exit(0);
-
-        while ((n = read(sockfd, recvline, BUFFER_SIZE-1)) > 0)
-        {
-            printf("%s", recvline);
-        }
-        if(n<0){
-            printf("read error");
-        }
-
-        exit(1);
+        printf("----welcome to the bate papo----\n");
+        send(sockfd, name, 32, 0);
+        /* close the socket */
+        close(sockfd); 
     }
 }
