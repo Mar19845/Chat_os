@@ -12,7 +12,12 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <netdb.h>
-
+#include <unistd.h>
+#include <stdio.h>
+#include <time.h>
+#include <pthread.h>
+#include <string.h>
+#include <signal.h>
 
 //BUFFER SIZE
 #define SA struct sockaddr
@@ -39,7 +44,7 @@ int main(int argc, char **argv)
         int sockfd, n;
         int sendbytes;
         struct sockaddr_in servaddr;
-
+        
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == -1){ 
@@ -58,6 +63,7 @@ int main(int argc, char **argv)
         }
         printf("----welcome to the bate papo----\n");
         send(sockfd, name, 32, 0);
+        
         /* close the socket */
         close(sockfd); 
     }

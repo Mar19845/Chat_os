@@ -1,7 +1,11 @@
 // standard
 #include <unistd.h>
-#include<stdio.h>
+#include <stdio.h>
 #include <time.h>
+#include <pthread.h>
+#include <string.h>
+#include <signal.h>
+#include <stdlib.h>
 
 //sockets lib
 #include <netdb.h> 
@@ -19,7 +23,9 @@
 // number of clients the server can handle 
 #define MAX_CLIENTS 100
 //buffer max size
-#define BUFFER_SIZE 2048  
+#define BUFFER_SIZE 2048
+// create a counter to chek if there is room in the chat
+static _Atomic unsigned int client_count = 0;
 //ip
 #define IP "127.0.0.1"
 // Status
@@ -37,6 +43,79 @@ typedef struct {
 
 //create pointer array for the clients
 Client *CLIENT_ar[MAX_CLIENTS];
+
+//print ip for users
+void print_ip(struct sockaddr_in addr){
+    printf("%d.%d.%d.%d\n",
+    addr.sin_addr.s_addr & 0xff,
+    (addr.sin_addr.s_addr & 0xff00) >> 8,
+    (addr.sin_addr.s_addr & 0xff0000) >> 16,
+    (addr.sin_addr.s_addr & 0xff000000) >> 24);
+}
+//function that add client to the server clients array
+void add_to_queue(Client *cliente){
+    
+    //for loop to iter the clients in the array
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        //check if this position is empty
+        if(!CLIENT_ar[i]){
+            CLIENT_ar[i]=cliente;
+            break;
+        }
+
+    }
+}
+//function that delete client of the server clients array
+void remove_of_queue(Client *cliente){
+    
+    //for loop to iter the clients in the array
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        //check if this position is not empty
+        if(CLIENT_ar[i]){
+            if(CLIENT_ar[i]->name == cliente->name){
+                //replace the client to null
+                CLIENT_ar[i]=NULL;
+                break;
+            }
+        }
+
+    }
+}
+
+//send msg to all clients in queue except the sender
+void send_msg(char *msg,Client *cliente){
+    //for loop to iter the clients in the array
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        //check if this position is not empty
+        if(CLIENT_ar[i]){
+            //compare if the name is not equal to the sender
+            if(CLIENT_ar[i]->name != cliente->name){
+                //send msg to the other client
+                if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
+                    printf("[SERVER]: send msg to client failed..\n"); 
+                    break;
+                }
+            }
+        }
+
+    }
+}
+//send msg to a specific client
+void send_msg_client(char *msg,Client *cliente){
+    //for loop to iter the clients in the array
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        //check if this position is not empty
+        if(CLIENT_ar[i]){
+            if(CLIENT_ar[i]->name != cliente->name){
+                if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
+                    printf("[SERVER]: send msg to client failed..\n"); 
+                    break;
+                }
+            }
+
+        }
+    }
+}
 
 int main(int argc,char* argv[]){
     if(argc==1)
@@ -105,9 +184,26 @@ int main(int argc,char* argv[]){
                     if(recv(connfd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
 		                printf("Didn't enter the name.\n");
                     }else{
-                        printf("%s",name);
+                        //check if reach max clients in queque
+                        if((client_count + 1) == MAX_CLIENTS){
+                            printf("Number of Clients reached: \n");
+                            close(connfd);
+                            continue;
+
+                        }
+                        //create a new client and configure it
+                        Client *cliente = (Client *)malloc(sizeof(Client));
+                        cliente->address = client_addr;
+                        cliente->sock_fd = connfd;
+                        cliente->status = STATUS_ACTIVE;
+                        cliente->connect_time = time(NULL);
+                        
+                        //add client to the queue
+                        add_to_queue(cliente);
+
+                        //reduce cpu usage and imporove perfom 
+                        sleep(1);
                     }
-                    close(connfd);
                     break;
                 }
 
