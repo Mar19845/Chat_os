@@ -62,8 +62,8 @@ void send_message(){
         if(strcmp(message, "exit")==0){
             break;
         }else{
-            sprintf(buffer, "%s: %s\n", name, message);
-            send(sockfd, buffer, strlen(buffer), 0);
+            //sprintf(buffer, "%s: %s\n", name, message);
+            //send(sockfd, buffer, strlen(buffer), 0);
         }
 
         bzero(message, BUFFER_SIZE);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
         int PORT = atoi(argv[3]);
         char *IP = (argv[2]);
-        
+        char *name = (argv[1]);
         int sockfd, n;
         int sendbytes;
         struct sockaddr_in servaddr;
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
         }
         printf("----welcome to the bate papo----\n");
         send(sockfd, name, 32, 0);
-        
+        printf("%s\n",name);
         /* close the socket */
         close(sockfd); 
     }

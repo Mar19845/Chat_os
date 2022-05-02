@@ -6,6 +6,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 //sockets lib
 #include <netdb.h> 
@@ -72,7 +73,7 @@ void remove_of_queue(Client *cliente){
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
         if(CLIENT_ar[i]){
-            if(CLIENT_ar[i]->name == cliente->name){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
                 //replace the client to null
                 CLIENT_ar[i]=NULL;
                 break;
@@ -89,7 +90,7 @@ void send_msg(char *msg,Client *cliente){
         //check if this position is not empty
         if(CLIENT_ar[i]){
             //compare if the name is not equal to the sender
-            if(CLIENT_ar[i]->name != cliente->name){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)!=0){
                 //send msg to the other client
                 if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
@@ -106,7 +107,7 @@ void send_msg_client(char *msg,Client *cliente){
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
         if(CLIENT_ar[i]){
-            if(CLIENT_ar[i]->name != cliente->name){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)!=0){
                 if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
                     break;
@@ -116,7 +117,40 @@ void send_msg_client(char *msg,Client *cliente){
         }
     }
 }
-
+//validate if the name exists return true if there is a cliente with this name or false if there is not
+bool val_username(Client *cliente){
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        if(CLIENT_ar[i]){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+//validate if the user exits in the array
+bool is_in_users(Client *cliente){
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        if(CLIENT_ar[i]){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+//function to kick out a user
+void kick_user(char*msg,Client *cliente){
+    for (int i=0; i < MAX_CLIENTS; ++i){
+        if(CLIENT_ar[i]){
+            if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
+                if(write(CLIENT_ar[i]-> sock_fd, msg, strlen(msg)) < 0){
+                    break;
+                }
+            }
+        }
+    }
+}
 int main(int argc,char* argv[]){
     if(argc==1)
         printf("\nNo Extra Command Line Argument Passed Other Than Program Name");
@@ -197,6 +231,7 @@ int main(int argc,char* argv[]){
                         cliente->sock_fd = connfd;
                         cliente->status = STATUS_ACTIVE;
                         cliente->connect_time = time(NULL);
+                        printf("%s\n",name);
                         
                         //add client to the queue
                         add_to_queue(cliente);
