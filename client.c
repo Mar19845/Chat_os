@@ -58,6 +58,7 @@ void send_message(){
     char buffer[BUFFER_SIZE + 32] = {};
 
     while (1){
+
         str_overwrite_stdout();
         fgets(message, BUFFER_SIZE, stdin);
 
@@ -67,10 +68,13 @@ void send_message(){
 
         strcpy(message_copy, message);
         if (strcmp(token, "exit") == 0){// Exit chat
+
             break;
+
         }else{
-            sprintf(buffer, "%s\n",message_copy);
+            sprintf(buffer, "%s: %s\n", name, message);
             send(sockfd, buffer, strlen(buffer), 0);
+            printf("%d\n",sockfd);
             //prueba
             printf("yo -> %s\n",buffer);
         }
@@ -168,7 +172,7 @@ int main(int argc, char **argv)
         int PORT = atoi(argv[3]);
         char *IP = (argv[2]);
         char *name = (argv[1]);
-        int sockfd, n;
+        //int sockfd, n;
         int sendbytes;
         struct sockaddr_in servaddr;
         
@@ -189,6 +193,7 @@ int main(int argc, char **argv)
             return -1;
         }
         send(sockfd, name, 32, 0);
+        printf("%d\n",sockfd);
         printf("----welcome to the bate papo----\n");
 
 

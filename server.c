@@ -183,12 +183,19 @@ void *handle_chat(void *arg){
 
     Client *cliente = (Client*)arg;
 
+    int leave_flag = 0;
+
     //get name from the client
     if(recv(cliente->sock_fd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
         printf("Didn't enter the name.\n");
+        leave_flag = 1;
     }else{
         strcpy(cliente->name, name);
         bool user_name_exists = val_username(cliente);
+
+        sprintf(buffer_out, "%s has joined\n", cliente->name);
+        printf("%s", buffer_out);
+        printf("%s\n",user_name_exists);
         if(!user_name_exists){//the username not exist in the array
             sprintf(buffer_out, "%s has joined\n", cliente->name);
             printf("%s", buffer_out);
@@ -196,25 +203,30 @@ void *handle_chat(void *arg){
         else{//user exits
             sprintf(buffer_out, "Username (%s) already exists.\n", cliente->name);
             kick_user(buffer_out, cliente);
+            leave_flag = 1;
 
         }
-        printf("%s\n",name);
+        //printf("%s\n",cliente->name);
+        
     }
     //clear the buffer
     bzero(buffer_out, BUFFER_SIZE);
-    
-    //send msg back
-    send_msg_client("help_commands", cliente);
-    
+
     //principal loop
     while(1){
-        if((recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0))>0){
+        //chek if the user gone
+        //if(leave_flag){ break;}
+        printf("leave_flag: %d\n",leave_flag);
+        //get info
+        int receive = recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0);
+        printf("recive: %d\n",receive);
+        if(receive > 0){
              //copu buffer
             strcpy(buffer_out_copy, buffer_out);
-
+            printf("--------\n");
             if (strlen(buffer_out) > 0){
                 str_trim_lf(buffer_out, strlen(buffer_out));
-                printf("%s\n",buffer_out);
+                printf("%s -> %s\n", buffer_out, cliente->name, cliente->status);
 
             }
             else{
@@ -226,7 +238,7 @@ void *handle_chat(void *arg){
             //send_msg(buffer_out,cliente);
 
 
-        }else if((recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0))==0){
+        }else if(receive==0){
             sprintf(buffer_out, "%s has left\n", cliente->name);
             printf("%s\n", buffer_out);
             send_msg(buffer_out, cliente);
@@ -234,6 +246,7 @@ void *handle_chat(void *arg){
         }else{
             printf("ERROR: -1\n");
         }
+        bzero(buffer_out, BUFFER_SIZE);
     }
 
 }
