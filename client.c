@@ -29,7 +29,7 @@ volatile sig_atomic_t flag = 0;
 char status[32];
 char *name[32];
 int sockfd = 0;
-string cstatus[] = { "offline", "online", "busy"};
+char cstatus[] = { "offline", "online", "busy"};
 
 void str_overwrite_stdout(){
     printf("%s", "> ");
