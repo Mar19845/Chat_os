@@ -26,11 +26,10 @@
 volatile sig_atomic_t flag = 0;
 
 // Status
-#define STATUS_ACTIVE 0
-#define STATUS_BUSY 2
-#define STATUS_INACTIVE 1
+char status[32];
 char *name[32];
 int sockfd = 0;
+string cstatus[] = { "offline", "online", "busy"};
 
 void str_overwrite_stdout(){
     printf("%s", "> ");
@@ -80,6 +79,81 @@ void send_message(){
     }
     catch_commands(2);
     
+}
+
+void receive_message(){
+    char message[BUFFER_SIZE] = {};
+    while (1)
+    {
+        int receive = recv(sockfd, message, BUFFER_SIZE, 0);
+        if (receive > 0){
+            printf("%s", message);
+            str_overwrite_stdout();
+        }else if (receive == 0){
+            break;
+        }
+        memset(message, 0, sizeof(message));
+    }
+}
+
+void menu_chat(){
+    printf("\n");
+    printf("\n1. CHAT GENERAL\n 2. CHAT PRIVADO\n 3. CAMBIAR STATUS\n 4. USUARIOS ACTIVOS\n 5. INFORMACION DE USUARIOS\n 6. AYUDA\n 7. SALIR\n");
+    printf("\n");
+}
+
+void privado(){
+    char message[BUFFER_SIZE] = {};
+    char user[BUFFER_SIZE] = {};
+    char buffer[BUFFER_SIZE] = {};
+    char temp;
+
+    printf("Ingresa el usuario al que quieres enviarle el mensaje: ");
+    scanf("%[^\n]s", &user);
+
+    printf("Ingresa el mensaje: ");
+    scanf("%c", &temp);
+
+    str_overwrite_stdout();
+    scanf("%[^\n]s", &message);
+
+    if(strcmp(message, "exit") == 0){
+        return;
+    }
+    else{
+        send(sockfd,  buffer, strlen(buffer), 0);
+    }
+
+    bzero(message, BUFFER_SIZE);
+    bzero(buffer, BUFFER_SIZE + 32);
+}
+
+void change_status(){
+    int status_choice;
+    char buffer[BUFFER_SIZE + 32] = {};
+    char temp;
+    char *status;
+    scanf("%c", &temp);
+    printf("Enter Status: \n 1.Offline, \n 2.Online \n 3.Busy\n");
+    scanf("%d",&status_choice);
+
+    switch(status_choice){
+        case 1:
+            status = cstatus[0];
+            break;
+        case 2:
+            status = cstatus[1];
+            break;
+        case 3:
+            status = cstatus[2];
+            break;
+        default:
+            printf("OPCION INVALIDA, INTENTE DE NUEVO\n");
+            break;
+    }
+    sprintf(buffer, "%s: %s\n", name, status);
+    send(sockfd, buffer, strlen(buffer), 0);
+    bzero(buffer, BUFFER_SIZE + 32);
 }
 
 int main(int argc, char **argv)
