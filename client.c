@@ -57,6 +57,9 @@ void send_message(){
     char message_copy[BUFFER_SIZE] = {};//copy of the message for
     char buffer[BUFFER_SIZE + 32] = {};
 
+    //char *token;
+    //const char *delim = " ";
+
     while (1){
 
         str_overwrite_stdout();
@@ -64,19 +67,64 @@ void send_message(){
 
         str_trim_lf(message, BUFFER_SIZE);
 
-        char* token = strtok(message, " ");
-
         strcpy(message_copy, message);
-        if (strcmp(token, "exit") == 0){// Exit chat
 
+        char *key, *value;
+        char* token = strtok(message, " ");
+        
+
+        //this is need to be done depends on what the token is
+        //key = actual msg or usernme depends on what the user wants
+        key = strtok(NULL, " ");
+        //value = null or msg depends on what the user wants
+        value = strtok(NULL, " ");
+        //create token for the json
+        if (strcmp(token, "exit") == 0){
+            // Exit chat
+            //end_conex 
+            //create json and send to server
             break;
 
-        }else{
-            sprintf(buffer, "%s: %s\n", name, message);
+        }
+        else if (strcmp(token, "change_status")==0){
+            //put_status
+            key = strtok(NULL, " ");
+            //key = status 
+            //create json for change status and send to server
+        }
+        else if (strcmp(token, "send_to")==0){
+
+            //post chat
+            // post chat to given user
+            key = strtok(NULL, " ");
+            //key = username 
+            value = strtok(NULL, " ");
+            //value = msg
+            //create json for send msg to certain user and send to server
+        }
+        else if (strcmp(token, "get_users")==0){
+            //get_user
+            //ask info of all connected users
+            //create json for info of all connected users and send to server
+        }
+        else if (strcmp(token, "get_user")==0){
+            //get_user
+            //ask info of a user
+            key = strtok(NULL, " ");
+            //key = username 
+            //create json for info of a user and send to server
+        }
+        else{
+            //send msg to all users
+            //post_chat
+            //create json for send msg to all users and send to server
+            printf("yo-> %s\n",message_copy);
+            printf("token: %s\n",token);
+            printf("key: %s\n",key);
+            printf("val: %s\n",value);
+            sprintf(buffer, "%s: %s\n", name, message_copy);
             send(sockfd, buffer, strlen(buffer), 0);
-            printf("%d\n",sockfd);
             //prueba
-            printf("yo -> %s\n",buffer);
         }
         
 
@@ -89,23 +137,31 @@ void send_message(){
 
 void receive_message(){
     char message[BUFFER_SIZE] = {};
+    char error_msg[BUFFER_SIZE] = "Username already exists.\n";
+    char timeout_msg[BUFFER_SIZE] = "Sesion has timeout.\n";
     while (1)
     {
         int receive = recv(sockfd, message, BUFFER_SIZE, 0);
         if (receive > 0){
             printf("%s", message);
             str_overwrite_stdout();
+
+            //change to response json
+            if(strcmp(error_msg, message) == 0){
+                flag = 1;
+                break;
+            }
+            //change to response json
+            else if(strcmp(timeout_msg, message) == 0){
+                flag = 1;
+	            break;
+	        }
+            str_overwrite_stdout();
         }else if (receive == 0){
             break;
         }
         memset(message, 0, sizeof(message));
     }
-}
-
-void menu_chat(){
-    printf("\n");
-    printf("\n1. CHAT GENERAL\n 2. CHAT PRIVADO\n 3. CAMBIAR STATUS\n 4. USUARIOS ACTIVOS\n 5. INFORMACION DE USUARIOS\n 6. AYUDA\n 7. SALIR\n");
-    printf("\n");
 }
 
 void privado(){
@@ -134,33 +190,7 @@ void privado(){
     bzero(buffer, BUFFER_SIZE + 32);
 }
 
-void change_status(){
-    int status_choice;
-    char buffer[BUFFER_SIZE + 32] = {};
-    char temp;
-    char *status;
-    scanf("%c", &temp);
-    printf("Enter Status: \n 1.Offline, \n 2.Online \n 3.Busy\n");
-    scanf("%d",&status_choice);
 
-    switch(status_choice){
-        case 1:
-            status = STATUS_INACTIVE;
-            break;
-        case 2:
-            status = STATUS_ACTIVE;
-            break;
-        case 3:
-            status = STATUS_BUSY;
-            break;
-        default:
-            printf("OPCION INVALIDA, INTENTE DE NUEVO\n");
-            break;
-    }
-    sprintf(buffer, "%s: %s\n", name, status);
-    send(sockfd, buffer, strlen(buffer), 0);
-    bzero(buffer, BUFFER_SIZE + 32);
-}
 
 int main(int argc, char **argv)
 {
@@ -192,8 +222,12 @@ int main(int argc, char **argv)
             printf("CONNECTION FAILED! :(");
             return -1;
         }
+
+
+        // init conex
+        //create json and send to server
+        //wait response
         send(sockfd, name, 32, 0);
-        printf("%d\n",sockfd);
         printf("----welcome to the bate papo----\n");
 
 
@@ -204,7 +238,7 @@ int main(int argc, char **argv)
         }
         
         while (1){
-            if(flag){
+            if(flag==1){
             printf("\nBye\n");
             break;
         }

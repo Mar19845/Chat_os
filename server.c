@@ -34,11 +34,17 @@ static _Atomic unsigned int client_count = 0;
 #define STATUS_ACTIVE 0
 #define STATUS_BUSY 2
 #define STATUS_INACTIVE 1
+
+//id for user
+static int id = 10;
+
+
 //define a struct for the client info
 typedef struct {
     struct sockaddr_in address;
     int sock_fd;
     char name[32];
+    int id;
     int status;
     time_t connect_time;
 }Client;
@@ -138,27 +144,31 @@ void send_msg_client(char *msg,Client *cliente){
     pthread_mutex_unlock(&clients_mutex);
 }
 //validate if the name exists return true if there is a cliente with this name or false if there is not
-bool val_username(Client *cliente){
+int val_username(Client *cliente){
 
     for (int i=0; i < MAX_CLIENTS; ++i){
         if(CLIENT_ar[i]){
             if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
-                return true;
+                //check if the id is the same for the users
+                if(CLIENT_ar[i]->id < cliente->id){
+                    return 1;
+                }
             }
         }
     }
-    return false;
+    return 0;
 }
 //validate if the user exits in the array
-bool is_in_users(Client *cliente){
+int is_in_users(Client *cliente){
     for (int i=0; i < MAX_CLIENTS; ++i){
         if(CLIENT_ar[i]){
             if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
-                return true;
+                return 1;
+                
             }
         }
     }
-    return false;
+    return 0;
 }
 //function to kick out a user
 void kick_user(char*msg,Client *cliente){
@@ -184,49 +194,53 @@ void *handle_chat(void *arg){
     Client *cliente = (Client*)arg;
 
     int leave_flag = 0;
-
     //get name from the client
+
+    //init conex json request
     if(recv(cliente->sock_fd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
         printf("Didn't enter the name.\n");
         leave_flag = 1;
+        
     }else{
         strcpy(cliente->name, name);
-        bool user_name_exists = val_username(cliente);
+        int user_name_exists = val_username(cliente);
 
-        sprintf(buffer_out, "%s has joined\n", cliente->name);
-        printf("%s", buffer_out);
-        printf("%s\n",user_name_exists);
-        if(!user_name_exists){//the username not exist in the array
+        if(user_name_exists == 0){//the username not exist in the array
             sprintf(buffer_out, "%s has joined\n", cliente->name);
             printf("%s", buffer_out);
         }
         else{//user exits
+            //json respond for init conex
             sprintf(buffer_out, "Username (%s) already exists.\n", cliente->name);
             kick_user(buffer_out, cliente);
             leave_flag = 1;
+            printf("user exist: %d\n",leave_flag);
 
         }
-        //printf("%s\n",cliente->name);
         
     }
     //clear the buffer
     bzero(buffer_out, BUFFER_SIZE);
-
     //principal loop
     while(1){
+
         //chek if the user gone
-        //if(leave_flag){ break;}
-        printf("leave_flag: %d\n",leave_flag);
+        if(leave_flag==1){ 
+            break;
+        }
+    
         //get info
         int receive = recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0);
-        printf("recive: %d\n",receive);
+        //add json parser y demas
         if(receive > 0){
              //copu buffer
             strcpy(buffer_out_copy, buffer_out);
-            printf("--------\n");
+            //add logic to json and logic to responf
             if (strlen(buffer_out) > 0){
+
+                //add the json parser for handle the request
                 str_trim_lf(buffer_out, strlen(buffer_out));
-                printf("%s -> %s\n", buffer_out, cliente->name, cliente->status);
+                printf("%s -> %s\n",cliente->name, buffer_out);
 
             }
             else{
@@ -242,18 +256,33 @@ void *handle_chat(void *arg){
             sprintf(buffer_out, "%s has left\n", cliente->name);
             printf("%s\n", buffer_out);
             send_msg(buffer_out, cliente);
+            leave_flag = 1;
 
         }else{
             printf("ERROR: -1\n");
+            leave_flag = 1;
         }
         bzero(buffer_out, BUFFER_SIZE);
     }
+
+    //close sockt
+    close(cliente->sock_fd);
+    remove_of_queue(cliente);
+    free(cliente);
+
+    // Decrease Client count
+    client_count--;
+
+    pthread_detach(pthread_self());
+
+    return NULL;
 
 }
 int main(int argc,char* argv[]){
     if(argc==1)
         printf("\nNo Extra Command Line Argument Passed Other Than Program Name");
     if(argc>=2){
+
         //format port 
         int PORT = atoi(argv[1]);
         //create pid 
@@ -262,11 +291,8 @@ int main(int argc,char* argv[]){
         int listen_fd,connfd; // listen to socket and socket connection descriptors
         // import socket struct for server and client
         struct sockaddr_in serv_addr,client_addr;
-        
-        //
-        int  len_rx, len_tx = 0;                     /* received and sent length, in bytes */
-        char buff_tx[BUFFER_SIZE] = "Hello client, I am the server";
-        char buff_rx[BUFFER_SIZE];   /* buffers for reception  */
+        int opt = 1;
+    
 
         //create the socket
         listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -277,6 +303,17 @@ int main(int argc,char* argv[]){
         else{
             printf("[SERVER]: Socket successfully created..\n"); 
         }
+
+        //force the socket attaching to the port/ip addres
+        if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)) < 0){
+            perror("setsockopt(SO_REUSEADDR) failed");
+        }
+        #ifdef SO_REUSEPORT
+        if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEPORT, (const char*)&opt, sizeof(opt)) < 0){
+            perror("setsockopt(SO_REUSEPORT) failed");
+        }
+        #endif
+        
 
         // clean the pointer of the socket
         memset(&serv_addr, 0, sizeof(serv_addr));
@@ -324,7 +361,8 @@ int main(int argc,char* argv[]){
                     cliente->address = client_addr;
                     cliente->sock_fd = connfd;
                     cliente->status = STATUS_ACTIVE;
-                    cliente->connect_time = time(NULL);
+                    cliente->id = id++;
+                    //cliente->connect_time = time(NULL);
   
                     //add client to the queue
                     add_to_queue(cliente);
