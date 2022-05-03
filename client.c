@@ -29,6 +29,8 @@ volatile sig_atomic_t flag = 0;
 #define STATUS_ACTIVE 0
 #define STATUS_BUSY 2
 #define STATUS_INACTIVE 1
+char *name[32];
+int sockfd = 0;
 
 void str_overwrite_stdout(){
     printf("%s", "> ");
@@ -51,20 +53,27 @@ void catch_commands(int sig){
 
 void send_message(){
     char message[BUFFER_SIZE] = {};
+    char message_copy[BUFFER_SIZE] = {};//copy of the message for
     char buffer[BUFFER_SIZE + 32] = {};
 
     while (1){
         str_overwrite_stdout();
         fgets(message, BUFFER_SIZE, stdin);
-        str_trim_lf(message, BUFFER_SIZE);
-    
 
-        if(strcmp(message, "exit")==0){
+        str_trim_lf(message, BUFFER_SIZE);
+
+        char* token = strtok(message, " ");
+
+        strcpy(message_copy, message);
+        if (strcmp(token, "exit") == 0){// Exit chat
             break;
         }else{
-            //sprintf(buffer, "%s: %s\n", name, message);
-            //send(sockfd, buffer, strlen(buffer), 0);
+            sprintf(buffer, "%s\n",message_copy);
+            send(sockfd, buffer, strlen(buffer), 0);
+            //prueba
+            printf("yo -> %s\n",buffer);
         }
+        
 
         bzero(message, BUFFER_SIZE);
         bzero(buffer, BUFFER_SIZE + 32);
@@ -103,9 +112,24 @@ int main(int argc, char **argv)
             printf("CONNECTION FAILED! :(");
             return -1;
         }
-        printf("----welcome to the bate papo----\n");
         send(sockfd, name, 32, 0);
-        printf("%s\n",name);
+        printf("----welcome to the bate papo----\n");
+
+
+        pthread_t send_msg_thread;
+        if(pthread_create(&send_msg_thread, NULL, (void*)send_message, NULL) != 0){
+            printf("ERROR: pthread.\n");
+            return -1;
+        }
+        
+        while (1){
+            if(flag){
+            printf("\nBye\n");
+            break;
+        }
+        }
+        
+
         /* close the socket */
         close(sockfd); 
     }

@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 //sockets lib
 #include <netdb.h> 
@@ -45,6 +46,19 @@ typedef struct {
 //create pointer array for the clients
 Client *CLIENT_ar[MAX_CLIENTS];
 
+//create thread iniciator
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void str_trim_lf(char* arr, int length){
+    int i;
+    for(i=0; i<length; i++){
+        if(arr[i] == '\n'){
+            arr[i] = '\0';
+            break;
+        }
+    }
+}
+
 //print ip for users
 void print_ip(struct sockaddr_in addr){
     printf("%d.%d.%d.%d\n",
@@ -55,7 +69,7 @@ void print_ip(struct sockaddr_in addr){
 }
 //function that add client to the server clients array
 void add_to_queue(Client *cliente){
-    
+    pthread_mutex_lock(&clients_mutex);
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is empty
@@ -65,10 +79,11 @@ void add_to_queue(Client *cliente){
         }
 
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 //function that delete client of the server clients array
 void remove_of_queue(Client *cliente){
-    
+    pthread_mutex_lock(&clients_mutex);
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
@@ -81,10 +96,12 @@ void remove_of_queue(Client *cliente){
         }
 
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 //send msg to all clients in queue except the sender
 void send_msg(char *msg,Client *cliente){
+    pthread_mutex_lock(&clients_mutex);
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
@@ -100,9 +117,11 @@ void send_msg(char *msg,Client *cliente){
         }
 
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 //send msg to a specific client
 void send_msg_client(char *msg,Client *cliente){
+    pthread_mutex_lock(&clients_mutex);
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
@@ -116,9 +135,11 @@ void send_msg_client(char *msg,Client *cliente){
 
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 //validate if the name exists return true if there is a cliente with this name or false if there is not
 bool val_username(Client *cliente){
+
     for (int i=0; i < MAX_CLIENTS; ++i){
         if(CLIENT_ar[i]){
             if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
@@ -141,6 +162,7 @@ bool is_in_users(Client *cliente){
 }
 //function to kick out a user
 void kick_user(char*msg,Client *cliente){
+    pthread_mutex_lock(&clients_mutex);
     for (int i=0; i < MAX_CLIENTS; ++i){
         if(CLIENT_ar[i]){
             if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
@@ -150,6 +172,70 @@ void kick_user(char*msg,Client *cliente){
             }
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
+}
+void *handle_chat(void *arg){
+    char buffer_out[BUFFER_SIZE];
+    char buffer_out_copy[BUFFER_SIZE];
+    char name[32];
+
+    client_count++;
+
+    Client *cliente = (Client*)arg;
+
+    //get name from the client
+    if(recv(cliente->sock_fd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
+        printf("Didn't enter the name.\n");
+    }else{
+        strcpy(cliente->name, name);
+        bool user_name_exists = val_username(cliente);
+        if(!user_name_exists){//the username not exist in the array
+            sprintf(buffer_out, "%s has joined\n", cliente->name);
+            printf("%s", buffer_out);
+        }
+        else{//user exits
+            sprintf(buffer_out, "Username (%s) already exists.\n", cliente->name);
+            kick_user(buffer_out, cliente);
+
+        }
+        printf("%s\n",name);
+    }
+    //clear the buffer
+    bzero(buffer_out, BUFFER_SIZE);
+    
+    //send msg back
+    send_msg_client("help_commands", cliente);
+    
+    //principal loop
+    while(1){
+        if((recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0))>0){
+             //copu buffer
+            strcpy(buffer_out_copy, buffer_out);
+
+            if (strlen(buffer_out) > 0){
+                str_trim_lf(buffer_out, strlen(buffer_out));
+                printf("%s\n",buffer_out);
+
+            }
+            else{
+                printf("no msg\n");
+            }
+           
+
+            //send msg to other users
+            //send_msg(buffer_out,cliente);
+
+
+        }else if((recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0))==0){
+            sprintf(buffer_out, "%s has left\n", cliente->name);
+            printf("%s\n", buffer_out);
+            send_msg(buffer_out, cliente);
+
+        }else{
+            printf("ERROR: -1\n");
+        }
+    }
+
 }
 int main(int argc,char* argv[]){
     if(argc==1)
@@ -157,7 +243,8 @@ int main(int argc,char* argv[]){
     if(argc>=2){
         //format port 
         int PORT = atoi(argv[1]);
-
+        //create pid 
+        pthread_t tid;
         // define int for comunication
         int listen_fd,connfd; // listen to socket and socket connection descriptors
         // import socket struct for server and client
@@ -214,31 +301,26 @@ int main(int argc,char* argv[]){
             else{
                 char name[32];
                 while(1){
-                    //recv(connfd, name, 32, 0);
-                    if(recv(connfd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
-		                printf("Didn't enter the name.\n");
-                    }else{
-                        //check if reach max clients in queque
-                        if((client_count + 1) == MAX_CLIENTS){
-                            printf("Number of Clients reached: \n");
-                            close(connfd);
-                            continue;
-
-                        }
-                        //create a new client and configure it
-                        Client *cliente = (Client *)malloc(sizeof(Client));
-                        cliente->address = client_addr;
-                        cliente->sock_fd = connfd;
-                        cliente->status = STATUS_ACTIVE;
-                        cliente->connect_time = time(NULL);
-                        printf("%s\n",name);
-                        
-                        //add client to the queue
-                        add_to_queue(cliente);
-
-                        //reduce cpu usage and imporove perfom 
-                        sleep(1);
+                    if((client_count + 1) == MAX_CLIENTS){
+                        printf("Number of Clients reached: \n");
+                        close(connfd);
+                        continue;
                     }
+                    //create a new client and configure it
+                    Client *cliente = (Client *)malloc(sizeof(Client));
+                    cliente->address = client_addr;
+                    cliente->sock_fd = connfd;
+                    cliente->status = STATUS_ACTIVE;
+                    cliente->connect_time = time(NULL);
+  
+                    //add client to the queue
+                    add_to_queue(cliente);
+
+                    pthread_create(&tid, NULL, &handle_chat, (void*)cliente);
+
+                    //reduce cpu usage and imporove perfom 
+                    sleep(1);
+                    
                     break;
                 }
 
