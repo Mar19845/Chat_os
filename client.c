@@ -29,7 +29,9 @@ volatile sig_atomic_t flag = 0;
 char status[32];
 char *name[32];
 int sockfd = 0;
-char cstatus[] = { "offline", "online", "busy"};
+#define STATUS_ACTIVE 0
+#define STATUS_BUSY 2
+#define STATUS_INACTIVE 1
 
 void str_overwrite_stdout(){
     printf("%s", "> ");
@@ -139,13 +141,13 @@ void change_status(){
 
     switch(status_choice){
         case 1:
-            status = cstatus[0];
+            status = STATUS_INACTIVE;
             break;
         case 2:
-            status = cstatus[1];
+            status = STATUS_ACTIVE;
             break;
         case 3:
-            status = cstatus[2];
+            status = STATUS_BUSY;
             break;
         default:
             printf("OPCION INVALIDA, INTENTE DE NUEVO\n");
