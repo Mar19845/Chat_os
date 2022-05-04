@@ -453,6 +453,7 @@ void *handle_chat(void *arg){
                     int valid_user = is_in_users(info_of_user);
                     if(valid_user==1){
                         printf("%s->sent msg to: %s ->%s\n",info_of_user,info_of_user,info_of_user);
+                        print_ip(cliente->address);
 
                     }
 

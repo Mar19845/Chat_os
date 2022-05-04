@@ -267,6 +267,13 @@ void receive_message(){
     char *status_user;
     char *CODE_READ;
     
+
+    struct json_object *new_instruccion1 = json_object_new_object();
+
+    struct json_object *request;
+    struct json_object *body;
+    struct json_object *code;
+    
     while (1){
         int receive = recv(sockfd, message, BUFFER_SIZE, 0);
         if (receive > 0){
@@ -274,20 +281,26 @@ void receive_message(){
            //printf("%s\n", message);
             json_instruccion1 = message;
             //create json objet
-            struct json_object *new_instruccion1 = json_object_new_object();
+            //struct json_object *new_instruccion1 = json_object_new_object();
             //parser the json
             new_instruccion1 = json_tokener_parse(json_instruccion1);
 
             //get request
-            struct json_object *request;
+            //struct json_object *request;
             json_object_object_get_ex(new_instruccion1,"request",&request);
             opcion1 = json_object_get_string(request);
-            struct json_object *body;
-            json_object_object_get_ex(new_instruccion1, "body",&body); 
-            struct json_object *code;
-            json_object_object_get_ex(new_instruccion1,"code",&code);
+
+            //struct json_object *body;
+            //json_object_object_get_ex(new_instruccion1, "body",&body);
+
+            //struct json_object *code;
+            //json_object_object_get_ex(new_instruccion1,"code",&code);
+
 
             if(strcmp(opcion1,"NEW_MESSAGE") == 0){
+
+                json_object_object_get_ex(new_instruccion1, "body",&body);
+
                 //get msg from server
                 json_object_object_get_ex(new_instruccion1,"body",&body);
                 msg = json_object_get_string(json_object_array_get_idx(body,0));
@@ -301,20 +314,23 @@ void receive_message(){
                 }else{
                     printf("%s to %s -> %s\n", from_user, name, msg);
                 }
-                
-
             }
             else if(strcmp(opcion1,"GET_USER") == 0){
                 //get info of a user or all of them
                 json_object_object_get_ex(new_instruccion1,"body",&body);
-                continue;
+                
             }
             else if(strcmp(opcion1,"GET_CHAT") == 0){
+
+                json_object_object_get_ex(new_instruccion1,"code",&code);
+
                 //useless response made by useless people
                 json_object_object_get_ex(new_instruccion1,"body",&body);
-                continue;
+                
             }
             else if(strcmp(opcion1,"POST_CHAT") == 0){
+                json_object_object_get_ex(new_instruccion1,"code",&code);
+
                 //get info of a user or all of them
                 CODE_READ = json_object_get_string(code);
                 if (strcmp(CODE_READ,"200") == 0){
@@ -326,6 +342,8 @@ void receive_message(){
                 }
             }
             else if(strcmp(opcion1,"END_CONEX") == 0){
+                json_object_object_get_ex(new_instruccion1,"code",&code);
+
                 //get info of a user or all of them
                 CODE_READ = json_object_get_string(code);
                 if (strcmp(CODE_READ,"200") == 0){
@@ -338,6 +356,9 @@ void receive_message(){
                 }
             }
             else if(strcmp(opcion1,"PUT_STATUS") == 0){
+                
+                json_object_object_get_ex(new_instruccion1,"code",&code);
+
                 //get info of a user or all of them
                 CODE_READ = json_object_get_string(code);
                 if (strcmp(CODE_READ,"200") == 0){
@@ -348,12 +369,22 @@ void receive_message(){
                     printf("----NO SE PUDO MODIFICAR :(----\n");
                 }  
             }
+            else{
+                continue;
+            }
+
+            sleep(1);
 
             //printf("%s\n", opcion1);
 
         }else if (receive == 0){
-            break;
-            flag =1;
+            continue;
+            //break;
+            //flag =1;
+        }
+        else{
+            printf("ERROR: -1\n");
+           //leave_flag = 1;
         }
         memset(message, 0, sizeof(message));
     }
