@@ -32,9 +32,9 @@ static _Atomic unsigned int client_count = 0;
 //ip
 #define IP "127.0.0.1"
 // Status
-#define STATUS_ACTIVE 0
-#define STATUS_BUSY 2
-#define STATUS_INACTIVE 1
+#define STATUS_ACTIVE "0"
+#define STATUS_BUSY "2"
+#define STATUS_INACTIVE "1"
 
 //id for user
 static int id = 10;
@@ -46,7 +46,7 @@ typedef struct {
     int sock_fd;
     char name[32];
     int id;
-    int status;
+    char status[32];
     time_t connect_time;
 }Client;
 
@@ -127,13 +127,13 @@ void send_msg(char *msg,Client *cliente){
     pthread_mutex_unlock(&clients_mutex);
 }
 //send msg to a specific client
-void send_msg_client(char *msg,Client *cliente){
+void send_msg_client(char *msg,char *name){
     pthread_mutex_lock(&clients_mutex);
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
         if(CLIENT_ar[i]){
-            if(strcmp(CLIENT_ar[i]->name,cliente->name)!=0){
+            if(strcmp(CLIENT_ar[i]->name,name)==0){
                 if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
                     break;
@@ -160,10 +160,10 @@ int val_username(Client *cliente){
     return 0;
 }
 //validate if the user exits in the array
-int is_in_users(Client *cliente){
+int is_in_users(char *name){
     for (int i=0; i < MAX_CLIENTS; ++i){
         if(CLIENT_ar[i]){
-            if(strcmp(CLIENT_ar[i]->name,cliente->name)==0){
+            if(strcmp(CLIENT_ar[i]->name,name)==0){
                 return 1;
                 
             }
@@ -284,32 +284,125 @@ void *handle_chat(void *arg){
         int receive = recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0);
         //add json parser y demas
         if(receive > 0){
-             //copu buffer
-            strcpy(buffer_out_copy, buffer_out);
-            //add logic to json and logic to responf
-            if (strlen(buffer_out) > 0){
+            //convert the buffer out from json to strings
+            //copy buffer out to json_instruccion
+            json_instruccion = buffer_out;
+            //create json objet
+            struct json_object *instruccion = json_object_new_object();
+            //parser the json
+            instruccion = json_tokener_parse(json_instruccion);
 
-                //add the json parser for handle the request
-                str_trim_lf(buffer_out, strlen(buffer_out));
-                printf("%s -> %s\n",cliente->name, buffer_out);
+            //get request
+            struct json_object *request;
+            json_object_object_get_ex(instruccion,"request",&request);
+
+            //get body
+            struct json_object *body;
+            json_object_object_get_ex(instruccion,"body",&body);
+
+            opcion = json_object_get_string(request);
+            //end connection
+            if(strcmp(opcion,"END_CONEX") == 0){
+                sprintf(buffer_out, "%s has left\n", cliente->name);
+                printf("%s\n", buffer_out);
+                send_msg(buffer_out, cliente);
+                leave_flag = 1;
+                code = "200";
 
             }
-            else{
-                printf("no msg\n");
+            else if(strcmp(opcion,"PUT_STATUS") == 0){
+                //get the new status
+                char *new_status;
+                new_status=json_object_get_string(body);
+                if(strcmp(new_status,"0")==0){
+                    //set status to active
+                    strcpy(cliente->status, "0");
+                    code = "200";
+                    printf("%s->%s\n",cliente->name,cliente->status);
+                }
+                else if(strcmp(new_status,"1")==0){
+                    //set status to inactive
+                    strcpy(cliente->status, "1");
+                    code = "200";
+                    printf("%s->%s\n",cliente->name,cliente->status);
+
+                }
+                else if(strcmp(new_status,"2")==0){
+                    //set status to busy
+                    strcpy(cliente->status, "2");
+                    code = "200";
+                    printf("%s->%s\n",cliente->name,cliente->status);
+
+                }
+                else{
+                    code = "104";
+
+                }
+
             }
-           
+            else if(strcmp(opcion,"POST_CHAT") == 0){
 
-            //send msg to other users
-            //send_msg(buffer_out,cliente);
+                char *msg;
+                char *user_sender;
+                char *time_sent;
+                char *to_who;
+                //get values from the body array
+                msg = json_object_get_string(json_object_array_get_idx(body,0));
+                user_sender = json_object_get_string(json_object_array_get_idx(body,1));
+                time_sent = json_object_get_string(json_object_array_get_idx(body,2));
+                to_who = json_object_get_string(json_object_array_get_idx(body,3));
+                
+                
+                if(strcmp(to_who,"all") == 0){
+                    //send msg to all users
+                    printf("%s->%s\n",user_sender,msg);
+                    //add funciton to send msg to other users
+                    code = "200";
+                }
+                else{
+                    int valid_user = is_in_users(to_who);
+                    if(valid_user==1){
+                        printf("%s->sent msg to: %s ->%s\n",user_sender,to_who,msg);
+                        //add funciton to send msg to user
+                        code = "200"; 
+                    }
+                    else{
+                        code = "102";
+                    }
+                }
+                //printf("%s->sent msg to: %s ->%s\n",user_sender,to_who,msg);
+            }
+            else if (strcmp(opcion,"GET_USER") == 0){
+                continue;
+            }
+            else if (strcmp(opcion,"GET_CHAT") == 0){
+                continue;
+            }
+            // send response to client
+            //respond to the client
+            struct json_object *response_form = json_object_new_object();
+            json_object_object_add(response_form,"response",json_object_new_string(opcion));
+            json_object_object_add(response_form,"code",json_object_new_string(code));
+
+            //convert to json
+            response = json_object_to_json_string_ext(response_form,JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+            //send response to client
+            send(cliente->sock_fd,response,strlen(response),0);
+
+            bzero(buffer_out, BUFFER_SIZE);
 
 
-        }else if(receive==0){
+
+        }
+        //if receive == 0, user left
+        else if(receive==0){
             sprintf(buffer_out, "%s has left\n", cliente->name);
             printf("%s\n", buffer_out);
             send_msg(buffer_out, cliente);
             leave_flag = 1;
 
-        }else{
+        }
+        else{
             printf("ERROR: -1\n");
             leave_flag = 1;
         }
@@ -411,7 +504,7 @@ int main(int argc,char* argv[]){
                     Client *cliente = (Client *)malloc(sizeof(Client));
                     cliente->address = client_addr;
                     cliente->sock_fd = connfd;
-                    cliente->status = STATUS_ACTIVE;
+                    strcpy(cliente->status, "0");
                     cliente->id = id++;
   
                     //add client to the queue
