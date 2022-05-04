@@ -57,22 +57,26 @@ void send_message(){
     char message[BUFFER_SIZE] = {};
     char message_copy[BUFFER_SIZE] = {};//copy of the message for
     char buffer[BUFFER_SIZE + 32] = {};
+    char *key, *value;
+    //char *instruccion;
 
-    //char *token;
+    char *token;
     //const char *delim = " ";
 
     while (1){
+         
 
         str_overwrite_stdout();
         fgets(message, BUFFER_SIZE, stdin);
-
+        
         str_trim_lf(message, BUFFER_SIZE);
-
+        
         strcpy(message_copy, message);
-
-        char *key, *value;
-        char* token = strtok(message, " ");
+        
+        // char *key, *value;
+        token = strtok(message, " ");
         char *instruccion;
+         
         
 
         //this is need to be done depends on what the token is
@@ -235,74 +239,118 @@ void send_message(){
         }
 
         send(sockfd, instruccion, BUFFER_SIZE, 0);
+
+        
+       
+        bzero(message, BUFFER_SIZE);
         
 
-        bzero(message, BUFFER_SIZE);
         bzero(buffer, BUFFER_SIZE + 32);
+        
+        
     }
     catch_commands(2);
     
 }
 
+
 void receive_message(){
     char message[BUFFER_SIZE] = {};
-    char *json_instruccion;
+    char *json_instruccion1;
     char *response;
-    char *opcion;
+    char *opcion1;
     char *code_recv;
+    char *msg;
+    char *from_user;
+    char *time_send; 
+    char *ip_user;
+    char *status_user;
+    char *CODE_READ;
     
     while (1){
         int receive = recv(sockfd, message, BUFFER_SIZE, 0);
         if (receive > 0){
             //copy buffer out to json_instruccion
-            json_instruccion = message;
+           //printf("%s\n", message);
+            json_instruccion1 = message;
             //create json objet
-            struct json_object *instruccion = json_object_new_object();
+            struct json_object *new_instruccion1 = json_object_new_object();
             //parser the json
-            instruccion = json_tokener_parse(json_instruccion);
+            new_instruccion1 = json_tokener_parse(json_instruccion1);
 
             //get request
             struct json_object *request;
-            json_object_object_get_ex(instruccion,"request",&request);
-
-            //get body
+            json_object_object_get_ex(new_instruccion1,"request",&request);
+            opcion1 = json_object_get_string(request);
             struct json_object *body;
+            json_object_object_get_ex(new_instruccion1, "body",&body); 
+            struct json_object *code;
+            json_object_object_get_ex(new_instruccion1,"code",&code);
 
-            opcion = json_object_get_string(request);
-
-
-            //check what response is
-            if(strcmp(opcion,"NEW_MESSAGE") == 0){
+            if(strcmp(opcion1,"NEW_MESSAGE") == 0){
                 //get msg from server
-                json_object_object_get_ex(instruccion,"body",&body);
-                continue;
+                json_object_object_get_ex(new_instruccion1,"body",&body);
+                msg = json_object_get_string(json_object_array_get_idx(body,0));
+                from_user = json_object_get_string(json_object_array_get_idx(body,1));
+                time_send = json_object_get_string(json_object_array_get_idx(body,2));
+                name = json_object_get_string(json_object_array_get_idx(body,3));
+
+                if (strcmp(name, "all") == 0)
+                {
+                    printf("%s -> %s \n", from_user, msg);
+                }else{
+                    printf("%s to %s -> %s\n", from_user, name, msg);
+                }
+                
 
             }
-            else if(strcmp(opcion,"GET_USER") == 0){
+            else if(strcmp(opcion1,"GET_USER") == 0){
                 //get info of a user or all of them
-                json_object_object_get_ex(instruccion,"body",&body);
+                json_object_object_get_ex(new_instruccion1,"body",&body);
                 continue;
             }
-            else if(strcmp(opcion,"GET_CHAT") == 0){
+            else if(strcmp(opcion1,"GET_CHAT") == 0){
                 //useless response made by useless people
-                json_object_object_get_ex(instruccion,"body",&body);
+                json_object_object_get_ex(new_instruccion1,"body",&body);
                 continue;
             }
-            else{
-                struct json_object *code;
-                struct json_object *new_instruccion = json_object_new_object();
-                json_object_object_get_ex(new_instruccion,"code",&code);
-
-                code_recv = json_object_get_string(code);
-
-                if (strcmp(code_recv,"200") == 0){
+            else if(strcmp(opcion1,"POST_CHAT") == 0){
+                //get info of a user or all of them
+                CODE_READ = json_object_get_string(code);
+                if (strcmp(CODE_READ,"200") == 0){
                     continue;
                 }
-                else{
-                    printf("error %s in server\n",code_recv);
+                //if opcion == 101 no tudo bem el usuario ya existe
+                else if(strcmp(CODE_READ,"102") == 0){
+                    printf("----EL USUARIO NO  ESTA CONECTADO----\n");
                 }
-
             }
+            else if(strcmp(opcion1,"END_CONEX") == 0){
+                //get info of a user or all of them
+                CODE_READ = json_object_get_string(code);
+                if (strcmp(CODE_READ,"200") == 0){
+                    continue;
+                }
+                //if opcion == 101 no tudo bem el usuario ya existe
+                else if(strcmp(CODE_READ,"105") == 0){
+                    printf("----ERROR INESPERADO ----\n");
+                    flag=1;
+                }
+            }
+            else if(strcmp(opcion1,"PUT_STATUS") == 0){
+                //get info of a user or all of them
+                CODE_READ = json_object_get_string(code);
+                if (strcmp(CODE_READ,"200") == 0){
+                    continue;
+                }
+                //if opcion == 101 no tudo bem el usuario ya existe
+                else if(strcmp(CODE_READ,"104") == 0){
+                    printf("----NO SE PUDO MODIFICAR :(----\n");
+                }  
+            }
+
+            //printf("%s\n", opcion1);
+
         }else if (receive == 0){
             break;
             flag =1;
@@ -418,11 +466,11 @@ int main(int argc, char **argv)
             printf("ERROR: pthread.\n");
             return -1;
         }
-        // pthread_t recv_msg_thread;
-        // if(pthread_create(&recv_msg_thread, NULL, (void*)receive_message, NULL) != 0){
-        //     printf("ERROR: pthread.\n");
-        //     return EXIT_FAILURE;
-        // }
+        pthread_t recv_msg_thread;
+        if(pthread_create(&recv_msg_thread, NULL, (void*)receive_message, NULL) != 0){
+            printf("ERROR: pthread.\n");
+            return EXIT_FAILURE;
+        }
         while (1){
             if(flag==1){
             printf("\nBye\n");

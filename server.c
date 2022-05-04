@@ -141,11 +141,8 @@ void send_msg(char *msg,Client *cliente){
         //check if this position is not empty
         if(CLIENT_ar[i]){
             //compare if the name is not equal to the sender
-            printf("fora del if \n");
-            
             
             if(CLIENT_ar[i]->id != cliente->id){
-                printf("%s->%s\n",cliente->name,msg);
                 if(send(CLIENT_ar[i]->sock_fd, instruccion, BUFFER_SIZE, 0)<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
                     break;
@@ -199,8 +196,6 @@ void send_msg_client(char *msg,char *name,Client *cliente){
                     break;
 
                 }
-                printf("%s\n",instruccion);
-
                 //if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
                     //printf("[SERVER]: send msg to client failed..\n"); 
                     //break;
