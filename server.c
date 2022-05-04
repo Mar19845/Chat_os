@@ -30,7 +30,7 @@
 // create a counter to chek if there is room in the chat
 static _Atomic unsigned int client_count = 0;
 //ip
-#define IP "127.0.0.1"
+#define IP "3.128.186.53"
 // Status
 #define STATUS_ACTIVE "0"
 #define STATUS_BUSY "2"
