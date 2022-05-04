@@ -110,6 +110,7 @@ void send_message(){
             key = strtok(NULL, " ");
             //key = status 
             //create json for change status and send to server
+            printf('ENTRE A ESTA MIERDA');
             struct json_object *init_connection = json_object_new_object();
             //add request to json
             json_object_object_add(init_connection,"request",json_object_new_string("PUT_STATUS"));
@@ -131,10 +132,10 @@ void send_message(){
             value = strtok(NULL, " ");
             //value = msg
 
-            printf("yo-> %s\n",message_copy);
-            printf("token: %s\n",token);
-            printf("key: %s\n",key);
-            printf("val: %s\n",value);
+            // printf("yo-> %s\n",message_copy);
+            // printf("token: %s\n",token);
+            // printf("key: %s\n",key);
+            // printf("val: %s\n",value);
 
             //create json for change status and send to server
             struct json_object *init_connection = json_object_new_object();
@@ -163,7 +164,7 @@ void send_message(){
 
 
         }
-        else if(strcmp(token,"c")==0){
+        else if(strcmp(token,"--c")==0){
             key = strtok(NULL, " ");
             //create json for change status and send to server
             struct json_object *init_connection = json_object_new_object();
@@ -201,18 +202,21 @@ void send_message(){
             key = strtok(NULL, " ");
             //key = username 
             //create json for info of a user and send to server
+        }else if(strcmp(token, "--help")==0){
+            printf("COMANDOS: \n --------------------------------------------------------------- \n SALIR: exit\n CAMBIAR ESTADO: change_status <num_state>\n MENSAJE PRIVADO: send_to <user> <message>\n CHAT GENERAL: --c <message>\n USUARIOS CONECTADOS: get_users\n USUARIO CONECTADO EN ESPECIFICO: get_user <user>\n --------------------------------------------------------------- \n");
         }
         else{
             //send msg to all users
             //post_chat
             //create json for send msg to all users and send to server
-            printf("yo-> %s\n",message_copy);
-            printf("token: %s\n",token);
-            printf("key: %s\n",key);
-            printf("val: %s\n",value);
-            sprintf(buffer, "%s: %s\n", name, message_copy);
-            send(sockfd, buffer, strlen(buffer), 0);
+            //printf("yo-> %s\n",message_copy);
+            // printf("token: %s\n",token);
+            // printf("key: %s\n",key);
+            // printf("val: %s\n",value);
+            // sprintf(buffer, "%s: %s\n", name, message_copy);
+            // send(sockfd, buffer, strlen(buffer), 0);
             //prueba
+            continue;
         }
         
 
@@ -397,11 +401,11 @@ int main(int argc, char **argv)
             printf("ERROR: pthread.\n");
             return -1;
         }
-        pthread_t recv_msg_thread;
-        if(pthread_create(&recv_msg_thread, NULL, (void*)receive_message, NULL) != 0){
-            printf("ERROR: pthread.\n");
-            return EXIT_FAILURE;
-        }
+        // pthread_t recv_msg_thread;
+        // if(pthread_create(&recv_msg_thread, NULL, (void*)receive_message, NULL) != 0){
+        //     printf("ERROR: pthread.\n");
+        //     return EXIT_FAILURE;
+        // }
         while (1){
             if(flag==1){
             printf("\nBye\n");

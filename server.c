@@ -404,7 +404,7 @@ void *handle_chat(void *arg){
         }
         else{
             printf("ERROR: -1\n");
-            leave_flag = 1;
+           //leave_flag = 1;
         }
         bzero(buffer_out, BUFFER_SIZE);
     }
