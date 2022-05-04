@@ -117,9 +117,8 @@ void send_message(){
 
             //convert json to string
             instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
-             printf("%s\n",key);
-            send(sockfd, instruccion, BUFFER_SIZE, 0);
-
+            //printf("%s\n",key);
+            //send(sockfd, instruccion, BUFFER_SIZE, 0);
 
         }
         else if (strcmp(token, "send_to")==0){
@@ -158,9 +157,7 @@ void send_message(){
             // clear the init connection
 
             //wait response
-            send(sockfd, instruccion, BUFFER_SIZE, 0);
-
-
+            //send(sockfd, instruccion, BUFFER_SIZE, 0);
 
         }
         else if(strcmp(token,"--c")==0){
@@ -187,7 +184,7 @@ void send_message(){
             // clear the init connection
 
             //wait response
-            send(sockfd, instruccion, BUFFER_SIZE, 0);
+            //send(sockfd, instruccion, BUFFER_SIZE, 0);
 
         }
         else if (strcmp(token, "get_users")==0){
@@ -201,8 +198,8 @@ void send_message(){
 
             //convert json to string
             instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
-            printf("hola\n");
-            send(sockfd, instruccion, BUFFER_SIZE, 0);
+            
+            //send(sockfd, instruccion, BUFFER_SIZE, 0);
         }
         else if (strcmp(token, "get_user")==0){
             //get_user
@@ -217,9 +214,8 @@ void send_message(){
 
             //convert json to string
             instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
-            printf("hola\n");
-            printf("%s\n",key);
-            send(sockfd, instruccion, BUFFER_SIZE, 0);
+            
+            //send(sockfd, instruccion, BUFFER_SIZE, 0);
 
         }else if(strcmp(token, "--help")==0){
             printf("COMANDOS: \n --------------------------------------------------------------- \n SALIR: exit\n CAMBIAR ESTADO: change_status <num_state>\n MENSAJE PRIVADO: send_to <user> <message>\n CHAT GENERAL: --c <message>\n USUARIOS CONECTADOS: get_users\n USUARIO CONECTADO EN ESPECIFICO: get_user <user>\n --------------------------------------------------------------- \n");
@@ -237,6 +233,8 @@ void send_message(){
             //prueba
             continue;
         }
+
+        send(sockfd, instruccion, BUFFER_SIZE, 0);
         
 
         bzero(message, BUFFER_SIZE);

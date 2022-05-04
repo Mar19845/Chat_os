@@ -108,36 +108,103 @@ void remove_of_queue(Client *cliente){
 
 //send msg to all clients in queue except the sender
 void send_msg(char *msg,Client *cliente){
+   
+
     pthread_mutex_lock(&clients_mutex);
+
+    char *instruccion;
+
+    //create json and send to server
+    struct json_object *init_connection = json_object_new_object();
+    //add request to json
+    json_object_object_add(init_connection,"request",json_object_new_string("NEW_MESSAGE"));
+    //create body
+    struct json_object *body = json_object_new_array();
+        
+    
+    json_object_array_add(body,json_object_new_string(msg));
+    json_object_array_add(body,json_object_new_string(cliente->name));
+    //deliver time
+    json_object_array_add(body,json_object_new_string(msg));
+    json_object_array_add(body,json_object_new_string("all"));
+
+    // add body to init conection
+    json_object_object_add(init_connection,"body",body);
+
+    //convert json to string
+    instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+    // clear the init connection
+
+    
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
         if(CLIENT_ar[i]){
             //compare if the name is not equal to the sender
-            if(strcmp(CLIENT_ar[i]->name,cliente->name)!=0){
-                //send msg to the other client
-                if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
+            printf("fora del if \n");
+            
+            
+            if(CLIENT_ar[i]->id != cliente->id){
+                printf("%s->%s\n",cliente->name,msg);
+                if(send(CLIENT_ar[i]->sock_fd, instruccion, BUFFER_SIZE, 0)<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
                     break;
                 }
             }
+            
+            
         }
 
     }
+    
     pthread_mutex_unlock(&clients_mutex);
 }
 //send msg to a specific client
-void send_msg_client(char *msg,char *name){
+void send_msg_client(char *msg,char *name,Client *cliente){
+
     pthread_mutex_lock(&clients_mutex);
+
+    char *instruccion;
+
+    //create json and send to server
+    struct json_object *init_connection = json_object_new_object();
+    //add request to json
+    json_object_object_add(init_connection,"request",json_object_new_string("NEW_MESSAGE"));
+    //create body
+    struct json_object *body = json_object_new_array();
+        
+    
+    json_object_array_add(body,json_object_new_string(msg));
+    json_object_array_add(body,json_object_new_string(cliente->name));
+    //deliver time
+    json_object_array_add(body,json_object_new_string(msg));
+    json_object_array_add(body,json_object_new_string(name));
+
+    // add body to init conection
+    json_object_object_add(init_connection,"body",body);
+
+    //convert json to string
+    instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+    // clear the init connection
+
+
+
     //for loop to iter the clients in the array
     for (int i=0; i < MAX_CLIENTS; ++i){
         //check if this position is not empty
         if(CLIENT_ar[i]){
             if(strcmp(CLIENT_ar[i]->name,name)==0){
-                if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
+                if(send(CLIENT_ar[i]->sock_fd, instruccion, BUFFER_SIZE, 0)<0){
                     printf("[SERVER]: send msg to client failed..\n"); 
                     break;
+
                 }
+                printf("%s\n",instruccion);
+
+                //if(write(CLIENT_ar[i]->sock_fd,msg,strlen(msg))<0){
+                    //printf("[SERVER]: send msg to client failed..\n"); 
+                    //break;
+                //}
             }
 
         }
@@ -305,7 +372,7 @@ void *handle_chat(void *arg){
             if(strcmp(opcion,"END_CONEX") == 0){
                 sprintf(buffer_out, "%s has left\n", cliente->name);
                 printf("%s\n", buffer_out);
-                send_msg(buffer_out, cliente);
+                //send_msg(buffer_out, cliente);
                 leave_flag = 1;
                 code = "200";
 
@@ -355,16 +422,19 @@ void *handle_chat(void *arg){
                 
                 if(strcmp(to_who,"all") == 0){
                     //send msg to all users
-                    printf("%s->%s\n",user_sender,msg);
+                    //printf("%s->%s\n",user_sender,msg);
+                    send_msg(msg,cliente);
                     //add funciton to send msg to other users
                     code = "200";
+                    
                 }
                 else{
                     int valid_user = is_in_users(to_who);
                     if(valid_user==1){
-                        printf("%s->sent msg to: %s ->%s\n",user_sender,to_who,msg);
+                        //printf("%s->sent msg to: %s ->%s\n",user_sender,to_who,msg);
+                        send_msg_client(msg,to_who,cliente);
                         //add funciton to send msg to user
-                        code = "200"; 
+                        code = "200";
                     }
                     else{
                         code = "102";
@@ -416,7 +486,7 @@ void *handle_chat(void *arg){
         else if(receive==0){
             sprintf(buffer_out, "%s has left\n", cliente->name);
             printf("%s\n", buffer_out);
-            send_msg(buffer_out, cliente);
+            //send_msg(buffer_out, cliente);
             leave_flag = 1;
 
         }
