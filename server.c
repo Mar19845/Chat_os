@@ -373,7 +373,25 @@ void *handle_chat(void *arg){
                 //printf("%s->sent msg to: %s ->%s\n",user_sender,to_who,msg);
             }
             else if (strcmp(opcion,"GET_USER") == 0){
-                continue;
+                printf("hola\n");
+                char *info_of_user;
+                info_of_user=json_object_get_string(body);
+
+                printf("%s\n",info_of_user);
+
+                if(strcmp(info_of_user,"all") == 0){
+                    printf("%s\n",info_of_user);
+                    printf("asds\n");
+
+                }
+                else{
+                    int valid_user = is_in_users(info_of_user);
+                    if(valid_user==1){
+                        printf("%s->sent msg to: %s ->%s\n",info_of_user,info_of_user,info_of_user);
+
+                    }
+
+                }
             }
             else if (strcmp(opcion,"GET_CHAT") == 0){
                 continue;

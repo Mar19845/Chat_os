@@ -110,7 +110,6 @@ void send_message(){
             key = strtok(NULL, " ");
             //key = status 
             //create json for change status and send to server
-            printf('ENTRE A ESTA MIERDA');
             struct json_object *init_connection = json_object_new_object();
             //add request to json
             json_object_object_add(init_connection,"request",json_object_new_string("PUT_STATUS"));
@@ -118,7 +117,7 @@ void send_message(){
 
             //convert json to string
             instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
-
+             printf("%s\n",key);
             send(sockfd, instruccion, BUFFER_SIZE, 0);
 
 
@@ -194,7 +193,16 @@ void send_message(){
         else if (strcmp(token, "get_users")==0){
             //get_user
             //ask info of all connected users
-            //create json for info of all connected users and send to server
+
+            struct json_object *init_connection = json_object_new_object();
+            //add request to json
+            json_object_object_add(init_connection,"request",json_object_new_string("GET_USER"));
+            json_object_object_add(init_connection,"body",json_object_new_string("all"));
+
+            //convert json to string
+            instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+            printf("hola\n");
+            send(sockfd, instruccion, BUFFER_SIZE, 0);
         }
         else if (strcmp(token, "get_user")==0){
             //get_user
@@ -202,6 +210,17 @@ void send_message(){
             key = strtok(NULL, " ");
             //key = username 
             //create json for info of a user and send to server
+            struct json_object *init_connection = json_object_new_object();
+            //add request to json
+            json_object_object_add(init_connection,"request",json_object_new_string("PUT_STATUS"));
+            json_object_object_add(init_connection,"body",json_object_new_string(key));
+
+            //convert json to string
+            instruccion = json_object_to_json_string_ext(init_connection, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+            printf("hola\n");
+            printf("%s\n",key);
+            send(sockfd, instruccion, BUFFER_SIZE, 0);
+
         }else if(strcmp(token, "--help")==0){
             printf("COMANDOS: \n --------------------------------------------------------------- \n SALIR: exit\n CAMBIAR ESTADO: change_status <num_state>\n MENSAJE PRIVADO: send_to <user> <message>\n CHAT GENERAL: --c <message>\n USUARIOS CONECTADOS: get_users\n USUARIO CONECTADO EN ESPECIFICO: get_user <user>\n --------------------------------------------------------------- \n");
         }
