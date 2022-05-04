@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <stdio.h> 
 #include <string.h>
+#include <json-c/json.h>
 
 // global variables
 // number of clients the server can handle 
@@ -187,7 +188,13 @@ void kick_user(char*msg,Client *cliente){
 void *handle_chat(void *arg){
     char buffer_out[BUFFER_SIZE];
     char buffer_out_copy[BUFFER_SIZE];
-    char name[32];
+    char *connect_time;
+    char *name;
+    char *json_instruccion;
+    char *response;
+    char *opcion;
+    char *code;
+    //int code;
 
     client_count++;
 
@@ -197,28 +204,72 @@ void *handle_chat(void *arg){
     //get name from the client
 
     //init conex json request
-    if(recv(cliente->sock_fd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
-        printf("Didn't enter the name.\n");
-        leave_flag = 1;
+    
+    int receive = recv(cliente->sock_fd, buffer_out, BUFFER_SIZE, 0);
+    if(receive > 0){
         
+        //convert the buffer out from json to strings
+        //copy buffer out to json_instruccion
+        json_instruccion = buffer_out;
+        //create json objet
+        struct json_object *instruccion = json_object_new_object();
+        //parser the json
+        instruccion = json_tokener_parse(json_instruccion);
+
+        //get request
+        struct json_object *request;
+        json_object_object_get_ex(instruccion,"request",&request);
+
+        //get body
+        struct json_object *body;
+        json_object_object_get_ex(instruccion,"body",&body);
+
+        opcion = json_object_get_string(request);
+        
+        if(strcmp(opcion,"INIT_CONEX") == 0){
+            //get index 0 of array
+            //connect_time = json_object_get_string(json_object_array_get_idx(body,0));
+            //strcpy(cliente->connect_time, connect_time);
+          
+            //get index 1 of array
+            name = json_object_get_string(json_object_array_get_idx(body,1));
+            strcpy(cliente->name, name);
+            
+            //check if the username is valid
+            int user_name_exists = val_username(cliente);
+            if(user_name_exists == 0){//the username not exist in the array
+                sprintf(buffer_out, "%s has joined\n", cliente->name);
+                printf("%s", buffer_out);
+                code = "200";
+            }
+            else{//user exits
+                sprintf(buffer_out, "Username (%s) already exists.\n", cliente->name);
+                //kick_user(buffer_out, cliente);
+                leave_flag = 1;
+                printf("user exist: %d\n",leave_flag);
+                code = "101";
+
+            }
+        
+            //respond to the client
+            struct json_object *response_form = json_object_new_object();
+            json_object_object_add(response_form,"response",json_object_new_string("INIT_CONEX"));
+            json_object_object_add(response_form,"code",json_object_new_string(code));
+
+            //convert to json
+            response = json_object_to_json_string_ext(response_form,JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY);
+            //send response to client
+            send(cliente->sock_fd,response,strlen(response),0);
+            
+
+        }
+
     }else{
-        strcpy(cliente->name, name);
-        int user_name_exists = val_username(cliente);
-
-        if(user_name_exists == 0){//the username not exist in the array
-            sprintf(buffer_out, "%s has joined\n", cliente->name);
-            printf("%s", buffer_out);
-        }
-        else{//user exits
-            //json respond for init conex
-            sprintf(buffer_out, "Username (%s) already exists.\n", cliente->name);
-            kick_user(buffer_out, cliente);
-            leave_flag = 1;
-            printf("user exist: %d\n",leave_flag);
-
-        }
-        
+        leave_flag = 1;
     }
+
+
+     
     //clear the buffer
     bzero(buffer_out, BUFFER_SIZE);
     //principal loop
@@ -362,7 +413,6 @@ int main(int argc,char* argv[]){
                     cliente->sock_fd = connfd;
                     cliente->status = STATUS_ACTIVE;
                     cliente->id = id++;
-                    //cliente->connect_time = time(NULL);
   
                     //add client to the queue
                     add_to_queue(cliente);
