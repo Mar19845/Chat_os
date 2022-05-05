@@ -278,7 +278,7 @@ void receive_message(){
         int receive = recv(sockfd, message, BUFFER_SIZE, 0);
         if (receive > 0){
             //copy buffer out to json_instruccion
-           //printf("%s\n", message);
+            printf("%s\n", message);
             json_instruccion1 = message;
             //create json objet
             //struct json_object *new_instruccion1 = json_object_new_object();
@@ -297,85 +297,11 @@ void receive_message(){
             //json_object_object_get_ex(new_instruccion1,"code",&code);
 
 
-            if(strcmp(opcion1,"NEW_MESSAGE") == 0){
-
-                json_object_object_get_ex(new_instruccion1, "body",&body);
-
-                //get msg from server
-                json_object_object_get_ex(new_instruccion1,"body",&body);
-                msg = json_object_get_string(json_object_array_get_idx(body,0));
-                from_user = json_object_get_string(json_object_array_get_idx(body,1));
-                time_send = json_object_get_string(json_object_array_get_idx(body,2));
-                name = json_object_get_string(json_object_array_get_idx(body,3));
-
-                if (strcmp(name, "all") == 0)
-                {
-                    printf("%s -> %s \n", from_user, msg);
-                }else{
-                    printf("%s to %s -> %s\n", from_user, name, msg);
-                }
-            }
-            else if(strcmp(opcion1,"GET_USER") == 0){
-                //get info of a user or all of them
-                json_object_object_get_ex(new_instruccion1,"body",&body);
-                
-            }
-            else if(strcmp(opcion1,"GET_CHAT") == 0){
-
-                json_object_object_get_ex(new_instruccion1,"code",&code);
-
-                //useless response made by useless people
-                json_object_object_get_ex(new_instruccion1,"body",&body);
-                
-            }
-            else if(strcmp(opcion1,"POST_CHAT") == 0){
-                json_object_object_get_ex(new_instruccion1,"code",&code);
-
-                //get info of a user or all of them
-                CODE_READ = json_object_get_string(code);
-                if (strcmp(CODE_READ,"200") == 0){
-                    continue;
-                }
-                //if opcion == 101 no tudo bem el usuario ya existe
-                else if(strcmp(CODE_READ,"102") == 0){
-                    printf("----EL USUARIO NO  ESTA CONECTADO----\n");
-                }
-            }
-            else if(strcmp(opcion1,"END_CONEX") == 0){
-                json_object_object_get_ex(new_instruccion1,"code",&code);
-
-                //get info of a user or all of them
-                CODE_READ = json_object_get_string(code);
-                if (strcmp(CODE_READ,"200") == 0){
-                    continue;
-                }
-                //if opcion == 101 no tudo bem el usuario ya existe
-                else if(strcmp(CODE_READ,"105") == 0){
-                    printf("----ERROR INESPERADO ----\n");
-                    flag=1;
-                }
-            }
-            else if(strcmp(opcion1,"PUT_STATUS") == 0){
-                
-                json_object_object_get_ex(new_instruccion1,"code",&code);
-
-                //get info of a user or all of them
-                CODE_READ = json_object_get_string(code);
-                if (strcmp(CODE_READ,"200") == 0){
-                    continue;
-                }
-                //if opcion == 101 no tudo bem el usuario ya existe
-                else if(strcmp(CODE_READ,"104") == 0){
-                    printf("----NO SE PUDO MODIFICAR :(----\n");
-                }  
-            }
-            else{
-                continue;
-            }
+            
 
             sleep(1);
 
-            //printf("%s\n", opcion1);
+            printf("%s\n", opcion1);
 
         }else if (receive == 0){
             continue;
