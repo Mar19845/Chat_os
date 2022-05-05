@@ -278,30 +278,53 @@ void receive_message(){
         int receive = recv(sockfd, message, BUFFER_SIZE, 0);
         if (receive > 0){
             //copy buffer out to json_instruccion
-            printf("%s\n", message);
-            json_instruccion1 = message;
-            //create json objet
-            //struct json_object *new_instruccion1 = json_object_new_object();
-            //parser the json
-            new_instruccion1 = json_tokener_parse(json_instruccion1);
+            printf("\n%s\n", message);
+            // json_instruccion1 = message;
+            // //create json objet
+            // //struct json_object *new_instruccion1 = json_object_new_object();
+            // //parser the json
+            // new_instruccion1 = json_tokener_parse(json_instruccion1);
 
-            //get request
-            //struct json_object *request;
-            json_object_object_get_ex(new_instruccion1,"request",&request);
-            opcion1 = json_object_get_string(request);
+            // //get request
+            // //struct json_object *request;
+            // json_object_object_get_ex(new_instruccion1,"request",&request);
+            // opcion1 = json_object_get_string(request);
 
-            //struct json_object *body;
-            //json_object_object_get_ex(new_instruccion1, "body",&body);
+            // //struct json_object *body;
+            // //json_object_object_get_ex(new_instruccion1, "body",&body);
 
-            //struct json_object *code;
-            //json_object_object_get_ex(new_instruccion1,"code",&code);
+            // //struct json_object *code;
+            // //json_object_object_get_ex(new_instruccion1,"code",&code);
 
 
+            // if(strcmp(opcion1,"NEW_MESSAGE") == 0){
+
+            //     json_object_object_get_ex(new_instruccion1, "body",&body);
+
+            //     //get msg from server
+            //     json_object_object_get_ex(new_instruccion1,"body",&body);
+            //     msg = json_object_get_string(json_object_array_get_idx(body,0));
+            //     from_user = json_object_get_string(json_object_array_get_idx(body,1));
+            //     time_send = json_object_get_string(json_object_array_get_idx(body,2));
+            //     name = json_object_get_string(json_object_array_get_idx(body,3));
+
+            //     if (strcmp(name, "all") == 0)
+            //     {
+            //         printf("%s -> %s \n", from_user, msg);
+            //     }else{
+            //         printf("%s to %s -> %s\n", from_user, name, msg);
+            //     }
+            // }
+            // else if(strcmp(opcion1,"(null)") == 0){
+            //     sleep(1);
+            //     continue;
+            // }
+            
             
 
-            sleep(1);
+            // sleep(1);
 
-            printf("%s\n", opcion1);
+            // printf("%s\n", opcion1);
 
         }else if (receive == 0){
             continue;
